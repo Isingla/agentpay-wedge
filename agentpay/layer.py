@@ -60,6 +60,8 @@ class PaymentLayer:
 
     # ---------- setup ----------
     def open_agent(self, agent: str, balance: int = 0, capacity: int = 1) -> None:
+        if agent == ESCROW:
+            raise ValueError("the escrow account is reserved")
         with self.db.tx() as c:
             ledger.open_account(c, agent)
             c.execute("INSERT OR IGNORE INTO agents(id, capacity) VALUES (?, ?)",
@@ -116,6 +118,12 @@ class PaymentLayer:
             prior = ledger.lookup(c, key, src, dst, amount)
             if prior is not None:
                 return prior                      # replay: no cap charge, no movement
+            # Escrow funds may only move through post_task / settle / sweep, which
+            # keep the escrow account and the escrow rows in lockstep.
+            if ESCROW in (src, dst):
+                return ledger.record_rejection(c, key, src, dst, amount, "reserved_account", now)
+            if src == dst:
+                return ledger.record_rejection(c, key, src, dst, amount, "self_transfer", now)
             why = self._cap_violation(c, src, amount, False, now)
             if why:
                 return ledger.record_rejection(c, key, src, dst, amount, why, now)
@@ -139,6 +147,9 @@ class PaymentLayer:
                 if e is not None and e["spec"] != spec_json:
                     raise IdempotencyConflict(f"task {task_id!r} reposted with a different spec")
                 return Outcome(prior.ok, "OPEN" if prior.ok else None, prior.reason)
+            if buyer == ESCROW:
+                ledger.record_rejection(c, key, buyer, ESCROW, amount, "reserved_account", now)
+                return Outcome(False, None, "reserved_account")
             why = self._cap_violation(c, buyer, amount, True, now)
             if why:
                 ledger.record_rejection(c, key, buyer, ESCROW, amount, why, now)

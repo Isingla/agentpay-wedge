@@ -1,6 +1,6 @@
 # agentpay-wedge: what happens when paying agents misbehave
 
-A buyer agent pays a seller agent per task through a small local payment layer. The agents are deliberately dumb (about 50 lines each). The interesting part is the layer between them, plus the tests that try to break it. Everything uses Python stdlib and SQLite. `python3 run.py` runs 22 tests and a demo in about 5 seconds.
+A buyer agent pays a seller agent per task through a small local payment layer. The agents are deliberately dumb (about 50 lines each). The interesting part is the layer between them, plus the tests that try to break it. Everything uses Python stdlib and SQLite. `python3 run.py` runs 27 tests and a demo in about 5 seconds.
 
 ## The invariant
 
@@ -32,7 +32,9 @@ A buyer agent pays a seller agent per task through a small local payment layer. 
 5. **Oracle down.** `settle` returns `oracle_unavailable` repeatedly. Ten hours past the deadline, the sweep still does not refund submitted work. When the oracle comes back, the escrow releases. A *crashing* oracle is treated as down, not as "fail."
 6. **Two buyers, one seller.** Run 25 rounds of concurrent assigns against a capacity-1 seller: one assign wins, the other gets `seller_busy`. Two sellers racing for one task: one wins. Twelve concurrent settles: one release, and reputation is bumped once.
 
-**Testing the tests.** I injected 7 bugs into the layer, including no compare-and-swap on settle, timeouts that refund submitted work, crashing-oracle-as-fail, a missing capacity check, and replays re-charged against caps. The suite catches all 7; `python3 mutation_check.py` reproduces this. The last one survived the first version of the suite and turned out to be a real bug: a retried payment near the cap crashed instead of returning its original result. A test now covers it.
+**Testing the tests.** I injected 7 bugs into the layer, including no compare-and-swap on settle, timeouts that refund submitted work, crashing-oracle-as-fail, a missing capacity check, and replays re-charged against caps. The suite catches all 7 (now 8, see below); `python3 mutation_check.py` reproduces this. The last one survived the first version of the suite and turned out to be a real bug: a retried payment near the cap crashed instead of returning its original result. A test now covers it.
+
+**A break found from outside.** An external attack run found a hole the suite missed: `pay()` could move money directly into or out of the escrow account, so the escrow balance no longer matched the live escrows. The audit flagged it immediately, which is the point of auditing after every step. Fix: escrow is a reserved account. Only `post_task`, `settle` and `sweep` can move escrow funds, and `pay()` and `post_task` reject it as a party. The fix adds 5 regression tests, the fuzz test now includes the escrow account, and this hole is the 8th planted bug in `mutation_check.py`.
 
 **Design choice worth arguing about.** Timeouts refund only work that was *never submitted*. If work was submitted and the oracle is unreachable, the money waits. Refunding would punish a seller who delivered; paying would bypass verification. Parking the funds is the only option that never settles on a guess, and the liveness check proves the parking ends.
 

@@ -183,6 +183,41 @@ class T3_Overspend(LedgerTest):
                 c.execute("UPDATE accounts SET balance = -1 WHERE id = ?", (ESCROW,))
 
 
+class T7_EscrowIsNotAWallet(LedgerTest):
+    """Found by an external tournament run: pay() could move money in or out of
+    the escrow account directly, desyncing it from the escrow rows."""
+
+    def setUp(self):
+        super().setUp()
+        L = self.layer
+        L.open_agent("buyer", 5000)
+        L.open_agent("seller")
+        L.post_task("live", "buyer", 1000, SUMMARY_SPEC)
+
+    def test_pay_cannot_drain_escrow(self):
+        r = self.layer.pay("drain", ESCROW, "seller", 1000)
+        self.assertEqual(r.reason, "reserved_account")
+        self.assertEqual(self.layer.balance(ESCROW), 1000)
+        self.assertEqual(self.layer.pay("drain", ESCROW, "seller", 1000), r)  # replay stable
+
+    def test_pay_cannot_inject_into_escrow(self):
+        self.assertEqual(self.layer.pay("inject", "buyer", ESCROW, 500).reason, "reserved_account")
+        self.assertEqual(self.layer.balance("buyer"), 4000)
+
+    def test_escrow_cannot_post_tasks(self):
+        # escrow holds funds here, so the funds check alone would NOT stop this
+        out = self.layer.post_task("phantom", ESCROW, 500, SUMMARY_SPEC)
+        self.assertEqual(out.reason, "reserved_account")
+        self.assertIsNone(self.layer.task("phantom"))
+
+    def test_escrow_cannot_be_opened_or_minted(self):
+        with self.assertRaises(ValueError):
+            self.layer.open_agent(ESCROW, 10_000)
+
+    def test_self_transfer_rejected(self):
+        self.assertEqual(self.layer.pay("self", "buyer", "buyer", 100).reason, "self_transfer")
+
+
 class T4_GarbageOutput(LedgerTest):
     def _run(self, mode):
         L = self.layer

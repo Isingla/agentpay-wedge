@@ -27,6 +27,8 @@ MUTANTS = {
     "payment replay re-checked against cap":
         ("            if prior is not None:\n                return prior                      # replay",
          "            if False:\n                return prior                      # replay"),
+    "pay() lets money in/out of escrow":
+        ("if ESCROW in (src, dst):", "if False:"),
     "assign ignores task state":
         ('if e["state"] != "OPEN":\n                same', "if False:\n                same"),
 }

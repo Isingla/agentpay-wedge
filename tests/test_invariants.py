@@ -52,7 +52,7 @@ class FuzzInvariants(LedgerTest):
             elif op < 0.88:
                 self.oracle.up = not self.oracle.up             # oracle flaps
             elif op < 0.95:
-                src, dst = rng.sample(BUYERS + list(SELLERS), 2)
+                src, dst = rng.sample(BUYERS + list(SELLERS) + [ESCROW], 2)
                 key = f"pay-{rng.randint(0, 30)}"               # deliberate key collisions
                 try:
                     L.pay(key, src, dst, rng.randint(1, 300))
