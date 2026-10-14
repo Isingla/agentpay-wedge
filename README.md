@@ -3,7 +3,8 @@
 A minimal payment layer for agent-to-agent work: an idempotent ledger, escrow, a verification oracle, and spend caps. It ships with chaos tests that prove money is never created, destroyed, or stuck.
 
 ```bash
-python3 run.py          # 22 tests + demo, ~5s, Python 3.10+, no dependencies
+python3 run.py            # 22 tests + demo, ~5s, Python 3.10+, no dependencies
+python3 mutation_check.py # plants 7 bugs one at a time; tests must catch all 7
 ```
 
 ```
