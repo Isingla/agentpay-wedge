@@ -2,3 +2,4 @@ __pycache__/
 *.db
 *.db-*
 trust_layer_results/
+tournament_results/
