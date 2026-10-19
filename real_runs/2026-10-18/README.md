@@ -22,3 +22,8 @@ same as this run.
 Limits: one run, 6 garbage + 6 good hand-written deliveries, one judge
 prompt. Per-item verdicts were not recorded, so which garbage items
 passed is not known. Model outputs vary between runs.
+
+Commit note: `report.md` records the run as `8f99356+uncommitted`. Commit
+IDs were later rewritten; `8f99356` is now `413ab55`, and the uncommitted
+changes it ran with are the ones committed in `26b7941`. The report file
+itself is left exactly as the run produced it.

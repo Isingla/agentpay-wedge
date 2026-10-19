@@ -11,7 +11,7 @@ story that the audit cannot see.
 
 ## 1. [FIXED] `pay()` accepted the escrow account — escrow drain
 
-**Status: fixed in commit `f187b2b`** (`Fix: pay() could drain or inject funds
+**Status: fixed in commit `800c85c`** (`Fix: pay() could drain or inject funds
 into the escrow account`). The escrow account is now reserved: `pay()` rejects it as
 either side (`reserved_account`), `post_task` rejects it as buyer
 (`reserved_account`), `open_agent` raises `ValueError` for it, and
