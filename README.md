@@ -44,3 +44,31 @@ See [WRITEUP.md](WRITEUP.md).
 ## Threat model (trust layer, v0.1 freeze — tag `v0.1-trust-layer-freeze`)
 
 The attackers are a seller agent optimizing for payout, a buyer agent overspending or replaying messages, and the verification oracle itself being gamed; what they want is payment without delivery, double payment, free work, or reputation without quality; and "the oracle loses" means one of three things — it pays for garbage (money lost), it rejects honest work (seller churn), or it freezes funds in limbo (trust lost). The trust layer in `trust_layer/` measures exactly these three losses per attack class. See [trust_layer/README.md](trust_layer/README.md).
+
+## Future work (not built)
+
+Nothing in this section exists yet. It is listed so the gaps are explicit.
+
+**Rule book.** A written set of rules for agent-to-agent contracts (who decides
+a verdict, what counts as evidence, what each verdict means). Today the code
+covers: the oracle decides, not the parties; the spec is locked once posted
+and conflicting reposts are refused; approval text inside a delivery is
+ignored; judge errors fail closed. Partly covered: rules run before the LLM
+judge; an audit record of each decision (per-item judge verdicts are not yet
+saved); INVALID exists in the report but not yet as an oracle verdict. Not
+covered: separate VERIFIED / RELEASED / SETTLED states; disputes, appeals,
+partial payment, and reopening a paid task.
+
+Note on substitution (paid 10 of 13 against the scripted attacker): the
+oracle verifies and pays for the same submission in one locked step, so this
+is not an artifact-swap problem. It is a provenance problem: the delivery is
+the one that was checked, but a cheaper model produced it.
+
+**Insurance pool (title-insurance style).** A small premium per task flows
+into a reserved pool account; sellers lock a bond. If a post-payment
+spot-check finds bad work, the pool refunds the buyer and the seller's bond
+is taken. Premiums would be priced from the trust layer's measured exploit
+rates (e.g. a judge that passed 3 of 6 garbage deliveries costs more to
+insure than one that passed 0 of 6), and the report would add a loss ratio:
+does the pool stay solvent under the measured rates? The pool is one more
+ledger account, so the conservation invariant still holds. Simulation only.
