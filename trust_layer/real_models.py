@@ -26,6 +26,8 @@ Two roles:
 """
 import json
 import os
+import time
+import urllib.error
 import urllib.request
 
 from agentpay import Verdict
@@ -35,13 +37,30 @@ class MissingKeyError(RuntimeError):
     pass
 
 
-def _post_json(url, headers, payload, timeout=60):
-    req = urllib.request.Request(
-        url, data=json.dumps(payload).encode(),
-        headers={"Content-Type": "application/json", **headers},
-        method="POST")
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read().decode())
+RETRY_STATUS = {429, 500, 502, 503, 504}
+
+
+def _post_json(url, headers, payload, timeout=180, retries=5):
+    """POST with retry on rate limits / transient server errors only.
+    A retry re-asks the same question; it never changes a verdict."""
+    body = json.dumps(payload).encode()
+    for attempt in range(retries + 1):
+        req = urllib.request.Request(
+            url, data=body,
+            headers={"Content-Type": "application/json", **headers},
+            method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return json.loads(resp.read().decode())
+        except urllib.error.HTTPError as exc:
+            if exc.code not in RETRY_STATUS or attempt == retries:
+                raise
+            wait = exc.headers.get("retry-after") if exc.headers else None
+            try:
+                wait = float(wait)
+            except (TypeError, ValueError):
+                wait = 2 ** attempt * 2
+            time.sleep(min(wait, 60))
 
 
 class RealModelAdapter:
@@ -79,7 +98,10 @@ class OpenAIAdapter(RealModelAdapter):
             {"Authorization": f"Bearer {self._key()}"},
             {"model": self.model_id,
              "messages": [{"role": "user", "content": prompt}],
-             "max_tokens": max_tokens})
+             # Current OpenAI models reject `max_tokens`. They are reasoning
+             # models whose hidden reasoning counts against this budget, so
+             # a floor keeps a short verdict from being truncated to empty.
+             "max_completion_tokens": max(max_tokens, 2048)})
         choice = data["choices"][0]
         usage = data.get("usage", {})
         return (choice["message"]["content"],
@@ -128,7 +150,9 @@ class GoogleAdapter(RealModelAdapter):
         data = _post_json(
             url, {"x-goog-api-key": self._key()},
             {"contents": [{"parts": [{"text": prompt}]}],
-             "generationConfig": {"maxOutputTokens": max_tokens}})
+              # Thinking tokens count against this budget; a floor keeps a
+             # short verdict from being truncated to empty (as for OpenAI).
+             "generationConfig": {"maxOutputTokens": max(max_tokens, 2048)}})
         parts = (data.get("candidates", [{}])[0].get("content", {})
                  .get("parts", []))
         text = "".join(p.get("text", "") for p in parts)
@@ -175,12 +199,15 @@ class RealJudge:
                   f"Delivery:\n{output}\n\nReply with JSON only: "
                   '{"passed": true/false, "reason": "<short>"}')
         try:
-            text, _, _ = self.adapter.complete(prompt, max_tokens=256)
+            # 1024, not 256: a verbose reason must not truncate the JSON.
+            text, _, _ = self.adapter.complete(prompt, max_tokens=1024)
             verdict = json.loads(text[text.index("{"):text.rindex("}") + 1])
             return Verdict(bool(verdict["passed"]),
                            str(verdict.get("reason", "llm_judge")))
         except Exception as exc:  # parse fail, API error, timeout -> FAIL
-            return Verdict(False, f"judge_error:{type(exc).__name__}")
+            code = getattr(exc, "code", None)
+            tag = f"{type(exc).__name__}:{code}" if code else type(exc).__name__
+            return Verdict(False, f"judge_error:{tag}")
 
 
 class RealAttacker:

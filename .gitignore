@@ -3,3 +3,6 @@ __pycache__/
 *.db-*
 trust_layer_results/
 tournament_results/
+.env
+.env.*
+.DS_Store

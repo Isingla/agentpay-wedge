@@ -182,6 +182,20 @@ class TrustLayerTests(unittest.TestCase):
         self.assertFalse(v.passed)
         self.assertTrue(v.reason.startswith("judge_error"))
 
+    def test_judge_errors_make_lane_invalid_not_measured(self):
+        class Broken:
+            def complete(self, prompt, max_tokens=1024):
+                raise RuntimeError("boom")
+
+        r = labels_mod.exploit_rate(real_mod.RealJudge(Broken()))
+        self.assertFalse(r["valid"])
+        self.assertEqual(r["errors"], r["garbage_n"] + r["good_n"])
+        section = report_mod._real_judges({"real_judges": {"x": r}})
+        self.assertIn("INVALID", section)
+        self.assertNotIn("Measured", section)
+        self.assertEqual(report_mod._status({"real_judges": {"x": r}})[0],
+                         "harness validated, no real-model results yet")
+
     def test_report_generator_never_leaves_placeholders(self):
         results = {"seeds": 1, "seed0": 0, "attacks_attempted": 3,
                    "attacks_paid": 1, "honest_wrongly_rejected": 0,

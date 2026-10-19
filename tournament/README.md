@@ -1,7 +1,6 @@
 # agentpay tournament
 
-[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
-<!-- TODO: replace OWNER/REPO with the real GitHub path once this repo is pushed. -->
+[![CI](https://github.com/Isingla/agentpay-wedge/actions/workflows/ci.yml/badge.svg)](https://github.com/Isingla/agentpay-wedge/actions/workflows/ci.yml)
 
 **Money is never created, destroyed, or stuck.** That is the invariant, and
 the layer's own audit (`check_invariants()`) recomputes every balance from
@@ -199,5 +198,3 @@ Copy `tournament/`, `run_tournament.py`, `.github/`, `LICENSE`, and
 no new dependencies. The repo's own suite is untouched: `python3 run.py`
 still runs the 22 chaos tests + demo.
 
-After pushing to GitHub, replace `OWNER/REPO` in the CI badge at the top
-of this README with the real path.

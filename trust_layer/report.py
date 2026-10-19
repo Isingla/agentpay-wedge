@@ -59,6 +59,12 @@ def _real_judges(results):
              "| Judge | Labeled garbage passed | Good passed | Kind |",
              "|---|---|---|---|"]
     for name, r in sorted(real.items()):
+        if not r.get("valid", True):
+            kinds = ", ".join(sorted(r.get("error_types", {})))
+            lines.append(f"| {name} | INVALID: {r.get('errors')} of "
+                         f"{r.get('garbage_n', 0) + r.get('good_n', 0)} calls "
+                         f"errored ({kinds}) | | Not counted |")
+            continue
         lines.append(f"| {name} | {r.get('garbage_passed')} of "
                      f"{r.get('garbage_n')} | {r.get('good_passed')} of "
                      f"{r.get('good_n')} | Measured |")
@@ -67,8 +73,13 @@ def _real_judges(results):
     return "\n".join(lines)
 
 
+def _valid_real(results):
+    return {k: v for k, v in (results.get("real_judges") or {}).items()
+            if v.get("valid", True)}
+
+
 def _status(results):
-    if results.get("real_judges"):
+    if _valid_real(results):
         return ("partial real-model run",
                 "Rows marked Measured with a real-model lane are claims about "
                 "those models. Every scripted row is still a harness check.")

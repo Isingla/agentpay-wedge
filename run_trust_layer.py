@@ -218,14 +218,25 @@ def main():
         print(f"  monitor ({label}): marginal catch {mon.get('rate')} "
               f"({mon.get('caught_by_monitor')}/{mon.get('passed_attacks')}) | "
               f"honest jobs flagged {ff['flagged']}/{ff['honest_jobs']}")
+    invalid = []
     for name, r in real_results.items():
+        if not r.get("valid", True):
+            invalid.append(name)
+            print(f"  real judge {name}: INVALID, {r['errors']} calls errored "
+                  f"{r['error_types']} (not counted)")
+            continue
         print(f"  real judge {name}: exploit {r['exploit_rate']:.2f} "
-              f"({r['garbage_passed']}/{r['garbage_n']})")
+              f"({r['garbage_passed']}/{r['garbage_n']}) | good passed "
+              f"{r['good_passed']}/{r['good_n']}")
     for name, why in skipped:
         print(f"  skipped lane {name}: {why}")
     print(f"\nResults: {os.path.join(args.out, 'results.json')}")
     print(f"Scoreboard: {os.path.join(args.out, 'scoreboard.html')}")
     print(f"Report: {os.path.join(args.out, 'report.md')}")
+    if invalid:
+        print(f"\nERROR: real-model lanes {invalid} had judge errors; their "
+              "rows are marked INVALID. Fix the cause and re-run.")
+        return 2
     return 0
 
 

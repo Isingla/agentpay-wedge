@@ -1,7 +1,6 @@
 # agentpay-wedge
 
-[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
-<!-- TODO: replace OWNER/REPO with the real GitHub path once this repo is pushed. -->
+[![CI](https://github.com/Isingla/agentpay-wedge/actions/workflows/ci.yml/badge.svg)](https://github.com/Isingla/agentpay-wedge/actions/workflows/ci.yml)
 
 **Money is never created, destroyed, or stuck.** That is the invariant, and
 the layer's own audit (`check_invariants()`) recomputes every balance from

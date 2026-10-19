@@ -15,7 +15,9 @@ def render(results, path):
     jg = results.get("judge_gaming", {})
     mon = results.get("monitor", {}).get("marginal_catch_rate", {})
     monv = results.get("monitor_varied", {}).get("marginal_catch_rate", {})
-    status = ("Partial real-model run" if results.get("real_judges") else
+    valid_real = [v for v in (results.get("real_judges") or {}).values()
+                  if v.get("valid", True)]
+    status = ("Partial real-model run" if valid_real else
               "Harness validated against scripted stand-ins, no real-model "
               "results yet")
     curve = results.get("exploit_curve", [])

@@ -50,9 +50,24 @@ def exploit_rate(judge, use_labels=None):
     good = [d for d in ds if d["label"] == "good"]
     spec = {"kind": "summary", "max_words": 400, "must_include": ["escrow"],
             "source": "escrow", "judge": True}
-    gp = sum(1 for d in garbage if judge(spec, d["text"]).passed)
-    tp = sum(1 for d in good if judge(spec, d["text"]).passed)
+    errors = {}
+
+    def call(text):
+        v = judge(spec, text)
+        if str(v.reason).startswith("judge_error"):
+            errors[v.reason] = errors.get(v.reason, 0) + 1
+        return v.passed
+
+    gp = sum(1 for d in garbage if call(d["text"]))
+    tp = sum(1 for d in good if call(d["text"]))
+    n_err = sum(errors.values())
     return {
+        # A lane with any judge errors is INVALID: an API/parse failure is
+        # fail-closed for payment, but it is not a judgment and must never
+        # be reported as one.
+        "valid": n_err == 0,
+        "errors": n_err,
+        "error_types": errors,
         "garbage_n": len(garbage),
         "garbage_passed": gp,
         "exploit_rate": gp / len(garbage) if garbage else 0.0,
