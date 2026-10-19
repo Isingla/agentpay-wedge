@@ -22,15 +22,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Repo suite (22 chaos tests + demo)
+      - name: "Repo suite (22 chaos tests + demo)"
         run: python3 run.py
-      - name: Tournament, clean layer (must hold: 0 breaks)
+      - name: "Tournament, clean layer (must hold: 0 breaks)"
         run: python3 run_tournament.py --rounds 6 --expect-clean
-      - name: Tournament, planted-bug variants (all 7 must be caught)
+      - name: "Tournament, planted-bug variants (all 7 must be caught)"
         run: python3 run_tournament.py --rounds 6 --variants all --expect-breaks
-      - name: Trust-layer tests
+      - name: "Trust-layer tests"
         run: python3 -m unittest tests.test_trust_layer -v
-      - name: Trust-layer suite (scripted, must reproduce exactly)
+      - name: "Trust-layer suite (scripted, must reproduce exactly)"
         run: |
           python3 run_trust_layer.py --seeds 5 --out /tmp/tl_a
           python3 run_trust_layer.py --seeds 5 --out /tmp/tl_b
